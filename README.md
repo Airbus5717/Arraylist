@@ -1,126 +1,120 @@
-
 # Array Macros for Dynamic Arrays
 
-A set of macros for managing dynamic arrays in C. These macros simplify operations like creation, resizing, and memory management.
+Lightweight macro helpers for dynamic arrays in C with safer edge-case handling and better strict-C portability.
 
----
-
-## Declaring the Array Type
-
-Before using the macros, you need to declare the array type globally using the `generate_array_type(type)` macro. This should be placed in the global header scope to define the array type structure for the specified type `type`.
+## Declare an array type
 
 ```c
 generate_array_type(int);
 ```
 
-This declares a dynamic array type for `int`. You can use any valid C type, such as `float`, `double`, or custom structs.
+This creates `Array(int)` and `Slice(int)`.
 
----
+## API safety tiers
 
-## Macros
+Use checked macros by default. Keep unchecked macros only for compatibility or explicitly performance-focused paths where preconditions are guaranteed.
 
-### **`array_make(T, size)`**
-Creates a dynamic array of type `T` with an initial size.
+## Checked APIs (recommended)
 
-**Usage:**
-```c
-Array(int) myArray = array_make(int, 10);
-```
+- `array_make(T, size)`: allocate array with initial capacity (`size` can be `0`).
+- `array_free(arr)`: free array memory.
+- `array_reserve(arr, min_capacity)`: ensure capacity, returns `bool` and may update `arr` after `realloc`.
+- `array_try_push(arr, value)`: append one value, returns `bool`.
+- `array_try_at(arr, idx, out_ptr)`: bounds-checked access, returns `bool`.
+- `array_try_slice_t(T, arr, low, high, out_slice)`: bounds-checked slice creation, returns `bool`.
+- `array_back_ptr(arr)`: pointer to last element or `NULL` when empty.
+- `array_length(arr)`: element count.
+- `array_is_empty(arr)`: true if `count == 0`.
+- `array_length_or0(arr)`: safe length for nullable arrays.
+- `array_is_empty_or_true(arr)`: safe empty check for nullable arrays.
+- `array_start(arr)`: pointer to first element.
 
-### **`array_free(arr)`**
-Frees the memory of the array.
+## Compatibility APIs (unchecked)
 
-**Usage:**
-```c
-array_free(myArray);
-```
+These are kept for compatibility and speed-focused code paths:
 
-### **`array_push(arr, value)`**
-Appends a value to the end of the array, resizing if necessary.
+- `array_push(arr, value)`: delegates to `array_try_push` and ignores failure.
+- `array_at(arr, idx)`: unchecked index access.
+- `array_end(arr)`: unchecked last-element pointer (invalid on empty arrays).
+- `array_end_unchecked(arr)`: explicit unchecked alias.
+- `slice_from_array_t(T, arr, low, high)`: unchecked slice creation.
 
-**Usage:**
-```c
-array_push(myArray, 42);
-```
+## Portability notes
 
-### **`array_start(arr)`**
-Returns a pointer to the first element of the array.
+- Strict C11/C17 path: use `array_for_each_t(T, arr, it)` and typed slice macros.
+- GNU/Clang convenience path: if `typeof` is supported, `array_for_each(arr, it)` is available.
 
-**Usage:**
-```c
-int *start = array_start(myArray);
-```
-
-### **`array_end(arr)`**
-Returns a pointer to the last element of the array.
-
-**Usage:**
-```c
-int *end = array_end(myArray);
-```
-
-### **`array_at(arr, idx)`**
-Accesses the element at a specific index.
-
-**Usage:**
-```c
-int value = array_at(myArray, 2);
-```
-
-### **`array_length(arr)`**
-Returns the number of elements in the array.
-
-**Usage:**
-```c
-usize length = array_length(myArray);
-```
-
-### **`array_for_each(arr, el)`**
-Iterates over each element in the array.
-
-**Usage:**
-```c
-array_for_each(myArray, el)
-{
-    printf("%d\n", *el);
-}
-```
-
----
-
-## Example
+## Example (safe usage)
 
 ```c
 #include <stdio.h>
-#include <stdlib.h>
+#include "array.h"
 
-// Assuming macros are included
-
-// Declare the array type globally
 generate_array_type(int);
 
-int main()
+int main(void)
 {
-    Array(int) myArray = array_make(int, 5); // Create array
+    Array(int) values = array_make(int, 0);
+    int *at0 = NULL;
 
-    array_push(myArray, 10); // Add values
-    array_push(myArray, 20);
-    array_push(myArray, 30);
+    if (!values) return 1;
+    if (!array_try_push(values, 10)) return 1;
+    if (!array_try_push(values, 20)) return 1;
 
-    array_for_each(myArray, el) // Print values
+    if (array_try_at(values, 0, &at0))
     {
-        printf("%d\n", *el);
+        printf("first=%d\n", *at0);
     }
 
-    array_free(myArray); // Free memory
+    array_for_each_t(int, values, it)
+    {
+        printf("%d\n", *it);
+    }
+
+    array_free(values);
     return 0;
 }
 ```
 
----
+## Edge-case behavior
 
-## Notes
+- Zero-capacity arrays grow correctly on first push.
+- Allocation/growth arithmetic is overflow-checked.
+- Reallocation failures do not discard existing array data.
+- `array_try_slice_t` rejects invalid ranges (`low > high` or `high > count`).
+- `array_try_at` and `array_try_slice_t` return `false` when output pointers are `NULL`.
 
-- Ensure sufficient memory when resizing arrays.
-- Handle memory allocation failures with error handling.
-- Always free arrays with `array_free` to prevent memory leaks.
+## Documentation
+
+Canonical Markdown docs live in `docs/`:
+
+- [Overview](./docs/overview.md)
+- [Quickstart](./docs/quickstart.md)
+- [API Reference](./docs/api-reference.md)
+- [Examples](./docs/examples.md)
+
+## Website (Vite + React + Tailwind)
+
+The project website lives in `site/` and renders the Markdown docs above.
+
+Run locally:
+
+```sh
+cd site
+npm install
+npm run dev
+```
+
+Production build:
+
+```sh
+cd site
+npm run build
+```
+
+## GitHub Pages deployment
+
+- Workflow file: `.github/workflows/pages.yml`
+- Trigger: push to `main` (or manual `workflow_dispatch`)
+- Output: `site/dist` uploaded as GitHub Pages artifact
+- Expected URL after deploy: `https://airbus5717.github.io/arraylist/`
