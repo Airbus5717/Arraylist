@@ -252,6 +252,43 @@ a {
   font-size: 0.94em;
 }
 
+.doc-markdown pre code.hljs {
+  color: color-mix(in srgb, var(--text), white 8%);
+  background: transparent;
+}
+
+.doc-markdown .hljs-keyword,
+.doc-markdown .hljs-selector-tag,
+.doc-markdown .hljs-literal,
+.doc-markdown .hljs-type {
+  color: #d97706;
+}
+
+.doc-markdown .hljs-string,
+.doc-markdown .hljs-attr,
+.doc-markdown .hljs-template-tag,
+.doc-markdown .hljs-template-variable {
+  color: #0891b2;
+}
+
+.doc-markdown .hljs-number,
+.doc-markdown .hljs-symbol,
+.doc-markdown .hljs-bullet {
+  color: #a855f7;
+}
+
+.doc-markdown .hljs-title,
+.doc-markdown .hljs-function,
+.doc-markdown .hljs-class .hljs-title {
+  color: #16a34a;
+}
+
+.doc-markdown .hljs-comment,
+.doc-markdown .hljs-quote {
+  color: color-mix(in srgb, var(--text-dim), var(--surface) 25%);
+  font-style: italic;
+}
+
 .doc-markdown blockquote {
   margin: 1rem 0;
   border-left: 3px solid var(--teal);

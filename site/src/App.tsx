@@ -1,6 +1,7 @@
 import { Navigate, NavLink, Route, Routes, useParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import rehypeHighlight from 'rehype-highlight'
 import { docs, getDocBySlug, getDocContent, getDocNeighbors, isDocSlug } from './content/docRegistry'
 
 function App() {
@@ -151,7 +152,9 @@ function DocsPage() {
         </div>
 
         <article className="doc-markdown">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+            {markdown}
+          </ReactMarkdown>
         </article>
 
         <div className="mt-10 grid gap-3 border-t border-[var(--line)] pt-5 sm:grid-cols-2">
