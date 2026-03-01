@@ -6,5 +6,6 @@ const useProjectBase = process.env.GITHUB_ACTIONS === 'true' && repositoryName
 
 export default defineConfig({
   plugins: [react()],
-  base: useProjectBase ? `/${repositoryName.toLowerCase()}/` : '/',
+  // GitHub Pages project paths are case-sensitive and must match the repo name.
+  base: useProjectBase ? `/${repositoryName}/` : '/',
 })
