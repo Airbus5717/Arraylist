@@ -1,6 +1,9 @@
 import { NavLink } from 'react-router-dom'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 export function NotFoundPage() {
+  usePageTitle('Not found — Arraylist')
+
   return (
     <article className="doc-page">
       <h1 className="doc-page__title">404 — not found</h1>

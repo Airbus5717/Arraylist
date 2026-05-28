@@ -78,6 +78,13 @@ Unchecked compatibility APIs:
 - Assume preconditions are already true.
 - Are concise, but undefined behavior is possible if used incorrectly (for example, out-of-bounds access or last-element access on empty arrays).
 
+## Portability
+
+- `array_size_t` is a `size_t` alias used for counts, capacities, and slice lengths.
+- Strict C11/C17 (`-std=c11 -pedantic`): use `array_for_each_t(T, arr, it)` and typed slice macros. `ARRAY_HAS_TYPEOF` is `0`.
+- GNU/Clang convenience (`-std=gnu11` or non-pedantic GCC/Clang): `ARRAY_HAS_TYPEOF` is `1`, enabling `array_for_each` and `slice_from_array`.
+- `array_try_push` accepts scalar rvalues (for example `array_try_push(arr, 10)`) via C11 `_Generic`. For struct or other non-scalar element types, use `array_try_push_lvalue(arr, value)` with an lvalue.
+
 ## Complexity at a glance
 
 | Operation | Complexity | Notes |

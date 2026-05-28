@@ -5,6 +5,10 @@ type DocTocProps = {
   headings: TocHeading[]
 }
 
+function prefersReducedMotion() {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
 export function DocToc({ headings }: DocTocProps) {
   const [activeId, setActiveId] = useState<string | null>(null)
 
@@ -40,6 +44,12 @@ export function DocToc({ headings }: DocTocProps) {
     return null
   }
 
+  function scrollToHeading(id: string) {
+    const behavior = prefersReducedMotion() ? 'auto' : 'smooth'
+    document.getElementById(id)?.scrollIntoView({ behavior })
+    history.replaceState(null, '', `#${id}`)
+  }
+
   return (
     <nav className="doc-toc" aria-label="On this page">
       <p className="doc-toc__label">on this page</p>
@@ -54,8 +64,7 @@ export function DocToc({ headings }: DocTocProps) {
               className={`doc-toc__link ${activeId === heading.id ? 'doc-toc__link--active' : ''}`}
               onClick={(event) => {
                 event.preventDefault()
-                document.getElementById(heading.id)?.scrollIntoView({ behavior: 'smooth' })
-                history.replaceState(null, '', `#${heading.id}`)
+                scrollToHeading(heading.id)
               }}
             >
               {heading.text}

@@ -91,7 +91,25 @@ array_for_each(arr, it)
 
 Why this matters: same runtime behavior as typed iteration, but shorter syntax when `typeof` is available.
 
-## 8) Cleanup pattern
+## 8) Struct element push (non-scalar)
+
+```c
+typedef struct { int x; int y; } Point;
+generate_array_type(Point);
+
+Array(Point) points = array_make(Point, 0);
+Point p = { .x = 1, .y = 2 };
+
+if (!array_try_push_lvalue(points, p))
+{
+    array_free(points);
+    return 1;
+}
+```
+
+Why this matters: `array_try_push` dispatches scalar types with `_Generic`; struct elements use the lvalue helper.
+
+## 9) Cleanup pattern
 
 ```c
 array_free(arr);
@@ -99,3 +117,9 @@ arr = NULL;
 ```
 
 Why this matters: freeing ownership plus nulling local pointers helps prevent accidental reuse.
+
+Compile-check all examples:
+
+```sh
+tests/compile/run.sh
+```

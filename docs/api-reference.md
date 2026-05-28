@@ -43,9 +43,17 @@ This reference is organized by operation group and focuses on behavior contracts
 ### `array_try_push(arr, value) -> bool`
 
 - Purpose: append one element at the logical end.
-- Preconditions: `arr` non-`NULL`.
+- Preconditions: `arr` non-`NULL`; `value` must be a scalar type covered by the macro's `_Generic` dispatch (integers and floating-point).
 - Failure behavior: returns `false` if `arr` is null, count overflows, or growth fails.
 - Complexity: amortized `O(1)`, worst-case `O(n)` on resize.
+- Notes: copies the value into the array. Literal and rvalue scalars (for example `10`, loop index) are supported.
+
+### `array_try_push_lvalue(arr, value) -> bool`
+
+- Purpose: append one element when `T` is a struct or other non-scalar type, or when pushing through an lvalue is clearer.
+- Preconditions: `arr` non-`NULL`; `value` must be an lvalue of the array's element type.
+- Failure behavior: same as `array_try_push`.
+- Complexity: same as `array_try_push`.
 
 ### `array_push(arr, value)` (compatibility)
 
@@ -58,13 +66,14 @@ This reference is organized by operation group and focuses on behavior contracts
 
 ### `array_try_at(arr, idx, out_ptr) -> bool`
 
-- Purpose: checked element access by index.
+- Purpose: checked element access by index; writes a pointer to the element inside the array (not a copy).
 - Preconditions:
   - `arr` non-`NULL`
   - `idx < arr->count`
-  - `out_ptr` non-`NULL`
-- Failure behavior: returns `false` when any precondition fails.
+  - `out_ptr` non-`NULL` (address of a `T*` variable)
+- Failure behavior: returns `false` when any precondition fails; does not write `*out_ptr` on failure.
 - Complexity: `O(1)`.
+- Notes: the returned pointer is invalidated if the array is reallocated or freed.
 
 ### `array_at(arr, idx)` (unchecked)
 
@@ -123,9 +132,16 @@ This reference is organized by operation group and focuses on behavior contracts
 ### `array_for_each(arr, it)` (GNU/Clang convenience)
 
 - Purpose: inferred-type iteration where `typeof` is available.
-- Preconditions: `ARRAY_HAS_TYPEOF` enabled and `arr` non-`NULL`.
-- Failure behavior: unavailable in strict mode; otherwise same preconditions as typed iteration.
+- Preconditions: `ARRAY_HAS_TYPEOF` is `1` (GNU/Clang, not strict ISO C) and `arr` non-`NULL`.
+- Failure behavior: macro is unavailable when `ARRAY_HAS_TYPEOF` is `0`; otherwise same preconditions as typed iteration.
 - Complexity: `O(n)`.
+
+### `slice_from_array(arr, low, high)` (GNU/Clang convenience)
+
+- Purpose: unchecked slice creation with inferred element type.
+- Preconditions: `ARRAY_HAS_TYPEOF` is `1`; bounds valid.
+- Failure behavior: unavailable in strict mode; undefined behavior if bounds are invalid.
+- Complexity: `O(1)`.
 
 ## Metadata and nullable helpers
 

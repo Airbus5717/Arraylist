@@ -1,8 +1,11 @@
 import { useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
+import { GITHUB_URL } from '../siteConfig'
 
 export function SiteNav() {
   const [menuOpen, setMenuOpen] = useState(false)
+  const { pathname } = useLocation()
+  const docsActive = pathname.startsWith('/docs')
 
   return (
     <header className="site-nav">
@@ -21,6 +24,7 @@ export function SiteNav() {
           <span className="site-nav__cmd hidden lg:inline">arraylist</span>
           <NavLink
             to="/"
+            end
             className={({ isActive }) => `site-nav__flag ${isActive ? 'site-nav__flag--active' : ''}`}
             onClick={() => setMenuOpen(false)}
           >
@@ -28,14 +32,14 @@ export function SiteNav() {
           </NavLink>
           <NavLink
             to="/docs/overview"
-            className={({ isActive }) => `site-nav__flag ${isActive ? 'site-nav__flag--active' : ''}`}
+            className={() => `site-nav__flag ${docsActive ? 'site-nav__flag--active' : ''}`}
             onClick={() => setMenuOpen(false)}
           >
             --docs
           </NavLink>
           <a
             className="site-nav__flag"
-            href="https://github.com/Airbus5717/Arraylist"
+            href={GITHUB_URL}
             target="_blank"
             rel="noreferrer"
             onClick={() => setMenuOpen(false)}

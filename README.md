@@ -19,8 +19,9 @@ Use checked macros by default. Keep unchecked macros only for compatibility or e
 - `array_make(T, size)`: allocate array with initial capacity (`size` can be `0`).
 - `array_free(arr)`: free array memory.
 - `array_reserve(arr, min_capacity)`: ensure capacity, returns `bool` and may update `arr` after `realloc`.
-- `array_try_push(arr, value)`: append one value, returns `bool`.
-- `array_try_at(arr, idx, out_ptr)`: bounds-checked access, returns `bool`.
+- `array_try_push(arr, value)`: append scalar rvalues, returns `bool`.
+- `array_try_push_lvalue(arr, value)`: append struct or other non-scalar elements, returns `bool`.
+- `array_try_at(arr, idx, out_ptr)`: bounds-checked access; writes a pointer into the array, returns `bool`.
 - `array_try_slice_t(T, arr, low, high, out_slice)`: bounds-checked slice creation, returns `bool`.
 - `array_back_ptr(arr)`: pointer to last element or `NULL` when empty.
 - `array_length(arr)`: element count.
@@ -41,8 +42,16 @@ These are kept for compatibility and speed-focused code paths:
 
 ## Portability notes
 
-- Strict C11/C17 path: use `array_for_each_t(T, arr, it)` and typed slice macros.
-- GNU/Clang convenience path: if `typeof` is supported, `array_for_each(arr, it)` is available.
+- Strict C11/C17 path (`-std=c11 -pedantic`): `ARRAY_HAS_TYPEOF` is `0`; use `array_for_each_t(T, arr, it)` and typed slice macros.
+- GNU/Clang convenience path: `ARRAY_HAS_TYPEOF` is `1`; `array_for_each(arr, it)` and `slice_from_array` are available.
+
+## Compile verification
+
+Doc snippets compile under strict C11:
+
+```sh
+tests/compile/run.sh
+```
 
 ## Example (safe usage)
 
@@ -117,4 +126,4 @@ npm run build
 - Workflow file: `.github/workflows/pages.yml`
 - Trigger: push to `main` (or manual `workflow_dispatch`)
 - Output: `site/dist` uploaded as GitHub Pages artifact
-- Expected URL after deploy: `https://airbus5717.github.io/arraylist/`
+- Expected URL after deploy: `https://code5717.github.io/Arraylist/`

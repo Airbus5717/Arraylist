@@ -61,16 +61,22 @@ What this demonstrates:
 
 ## 3) Compile commands
 
-Strict C11/C17 path:
+Strict C11/C17 path (`ARRAY_HAS_TYPEOF` is `0`; use `array_for_each_t`):
 
 ```sh
 cc -std=c11 -Wall -Wextra -pedantic demo.c -o demo
 ```
 
-GNU11 convenience path (`array_for_each` available when `typeof` is supported):
+GNU11 convenience path (`ARRAY_HAS_TYPEOF` is `1`; `array_for_each` available):
 
 ```sh
 cc -std=gnu11 -Wall -Wextra demo.c -o demo
+```
+
+Verify the doc snippets in this repository:
+
+```sh
+tests/compile/run.sh
 ```
 
 ## 4) Failure-handling pattern (recommended)
@@ -97,7 +103,9 @@ Why this pattern works:
   - Confirm you are using checked APIs and handling return values.
 - Iterator macro missing:
   - Use `array_for_each_t` for strict C mode; `array_for_each` requires `ARRAY_HAS_TYPEOF`.
+- Push fails on struct element types:
+  - Use `array_try_push_lvalue(arr, value)` instead of `array_try_push` for struct or other non-scalar `T`.
 - Pointer issues after growth:
-  - Remember reallocation can move the array block; stale element pointers may become invalid.
+  - Remember reallocation can move the array block; pointers from `array_try_at` or slices may become invalid.
 
 Next: [API Reference](./api-reference.md).

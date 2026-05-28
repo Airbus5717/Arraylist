@@ -3,21 +3,25 @@ const docDefinitions = [
     slug: 'overview',
     title: 'Overview',
     description: 'Ownership, layout, growth behavior, and complexity.',
+    group: 'Getting started',
   },
   {
     slug: 'quickstart',
     title: 'Quickstart',
     description: 'Safe, compile-ready setup with core failure-handling patterns.',
+    group: 'Getting started',
   },
   {
     slug: 'api-reference',
     title: 'API Reference',
     description: 'Contracts for preconditions, failure behavior, and complexity.',
+    group: 'Reference',
   },
   {
     slug: 'examples',
     title: 'Examples',
     description: 'Scenario snippets for safe and predictable usage.',
+    group: 'Examples',
   },
 ] as const
 
@@ -71,4 +75,19 @@ export function getDocNeighbors(slug: DocSlug): { previous: DocDefinition | null
   const previous = index > 0 ? docs[index - 1] : null
   const next = index < docs.length - 1 ? docs[index + 1] : null
   return { previous, next }
+}
+
+export function getDocsByGroup(): { label: string; docs: DocDefinition[] }[] {
+  const groups = new Map<string, DocDefinition[]>()
+
+  for (const doc of docs) {
+    const existing = groups.get(doc.group) ?? []
+    existing.push(doc)
+    groups.set(doc.group, existing)
+  }
+
+  return Array.from(groups.entries()).map(([label, groupDocs]) => ({
+    label,
+    docs: groupDocs,
+  }))
 }

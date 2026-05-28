@@ -8,4 +8,14 @@ export default defineConfig({
   plugins: [react()],
   // GitHub Pages project paths are case-sensitive and must match the repo name.
   base: useProjectBase ? `/${repositoryName}/` : '/',
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          markdown: ['react-markdown', 'remark-gfm', 'rehype-slug', 'rehype-highlight'],
+        },
+      },
+    },
+  },
 })

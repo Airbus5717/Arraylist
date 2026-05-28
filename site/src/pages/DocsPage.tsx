@@ -6,22 +6,30 @@ import rehypeHighlight from 'rehype-highlight'
 import rehypeSlug from 'rehype-slug'
 import { CodeBlock } from '../components/CodeBlock'
 import { DocToc } from '../components/DocToc'
-import { docs, getDocBySlug, getDocContent, getDocNeighbors, isDocSlug } from '../content/docRegistry'
+import { MarkdownLink } from '../components/MarkdownLink'
+import { docs, getDocBySlug, getDocContent, getDocNeighbors, isDocSlug, type DocSlug } from '../content/docRegistry'
+import { usePageTitle } from '../hooks/usePageTitle'
 import { extractHeadings } from '../utils/extractHeadings'
+import { remarkDocLinks } from '../utils/remarkDocLinks'
 import { NotFoundPage } from './NotFoundPage'
 
 export function DocsPage() {
   const { slug: slugParam } = useParams()
   const [navOpen, setNavOpen] = useState(false)
 
-  if (!slugParam || !isDocSlug(slugParam)) {
+  const slug: DocSlug | null = slugParam && isDocSlug(slugParam) ? slugParam : null
+  const currentDoc = slug ? getDocBySlug(slug) : null
+  const markdown = slug ? getDocContent(slug) : null
+  const neighbors = slug ? getDocNeighbors(slug) : { previous: null, next: null }
+  const headings = markdown ? extractHeadings(markdown) : []
+
+  usePageTitle(currentDoc ? `${currentDoc.title} — Arraylist Docs` : 'Not found — Arraylist')
+
+  if (!slug || !currentDoc) {
     return <NotFoundPage />
   }
 
-  const currentDoc = getDocBySlug(slugParam)
-  const markdown = getDocContent(slugParam)
-  const { previous, next } = getDocNeighbors(slugParam)
-  const headings = markdown ? extractHeadings(markdown) : []
+  const { previous, next } = neighbors
 
   if (!markdown) {
     return (
@@ -85,9 +93,10 @@ export function DocsPage() {
 
         <div className="doc-markdown">
           <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
+            remarkPlugins={[remarkGfm, remarkDocLinks]}
             rehypePlugins={[rehypeSlug, rehypeHighlight]}
             components={{
+              a: MarkdownLink,
               pre({ children }) {
                 return <CodeBlock>{children}</CodeBlock>
               },
