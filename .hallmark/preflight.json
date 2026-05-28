@@ -1,0 +1,10 @@
+{
+  "scannedAt": "2026-05-28",
+  "framework": "Vite 7 + React 19 + React Router 7",
+  "styling": "Tailwind 3 + Hallmark tokens.css",
+  "fonts": "JetBrains Mono via @fontsource/jetbrains-mono",
+  "motion": "motion-cut — micro only on buttons/copy",
+  "spacing": "4pt Hallmark scale in tokens.css",
+  "preserved": [],
+  "introduced": ["design.md", "Terminal theme", "Index-First home", "Long Document docs", "N8 nav", "Ft4 footer"]
+}
