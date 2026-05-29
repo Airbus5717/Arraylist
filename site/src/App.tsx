@@ -3,6 +3,7 @@ import { SiteLayout } from './layout/SiteLayout'
 import { DocsPage } from './pages/DocsPage'
 import { HomePage } from './pages/HomePage'
 import { NotFoundPage } from './pages/NotFoundPage'
+import { PlaygroundPage } from './pages/PlaygroundPage'
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/docs" element={<Navigate replace to="/docs/overview" />} />
         <Route path="/docs/:slug" element={<DocsPage />} />
+        <Route path="/playground" element={<PlaygroundPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </SiteLayout>

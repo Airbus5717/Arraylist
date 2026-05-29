@@ -1,12 +1,9 @@
 import { useEffect, useState } from 'react'
 import type { TocHeading } from '../utils/extractHeadings'
+import { scrollToHashElement } from '../utils/scrollToHash'
 
 type DocTocProps = {
   headings: TocHeading[]
-}
-
-function prefersReducedMotion() {
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
 export function DocToc({ headings }: DocTocProps) {
@@ -45,8 +42,7 @@ export function DocToc({ headings }: DocTocProps) {
   }
 
   function scrollToHeading(id: string) {
-    const behavior = prefersReducedMotion() ? 'auto' : 'smooth'
-    document.getElementById(id)?.scrollIntoView({ behavior })
+    scrollToHashElement(`#${id}`)
     history.replaceState(null, '', `#${id}`)
   }
 

@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { NavLink, useParams } from 'react-router-dom'
+import { useEffect, useId, useRef, useState } from 'react'
+import { NavLink, useLocation, useParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
@@ -7,23 +7,63 @@ import rehypeSlug from 'rehype-slug'
 import { CodeBlock } from '../components/CodeBlock'
 import { DocToc } from '../components/DocToc'
 import { MarkdownLink } from '../components/MarkdownLink'
+import { LazyDocVisuals } from '../components/visuals/LazyDocVisuals'
 import { docs, getDocBySlug, getDocContent, getDocNeighbors, isDocSlug, type DocSlug } from '../content/docRegistry'
-import { usePageTitle } from '../hooks/usePageTitle'
+import { usePageMeta } from '../hooks/usePageMeta'
 import { extractHeadings } from '../utils/extractHeadings'
 import { remarkDocLinks } from '../utils/remarkDocLinks'
+import { scrollToHashWithRetry } from '../utils/scrollToHash'
+import { stripLeadingH1 } from '../utils/stripLeadingH1'
 import { NotFoundPage } from './NotFoundPage'
 
 export function DocsPage() {
   const { slug: slugParam } = useParams()
+  const { hash } = useLocation()
   const [navOpen, setNavOpen] = useState(false)
+  const railPanelId = useId()
+  const railToggleRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (!navOpen) return
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setNavOpen(false)
+        railToggleRef.current?.focus()
+      }
+    }
+
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [navOpen])
 
   const slug: DocSlug | null = slugParam && isDocSlug(slugParam) ? slugParam : null
   const currentDoc = slug ? getDocBySlug(slug) : null
   const markdown = slug ? getDocContent(slug) : null
+  const bodyMarkdown = markdown ? stripLeadingH1(markdown) : null
   const neighbors = slug ? getDocNeighbors(slug) : { previous: null, next: null }
-  const headings = markdown ? extractHeadings(markdown) : []
+  const headings = bodyMarkdown ? extractHeadings(bodyMarkdown) : []
 
-  usePageTitle(currentDoc ? `${currentDoc.title} — Arraylist Docs` : 'Not found — Arraylist')
+  usePageMeta(
+    currentDoc
+      ? {
+          title: `${currentDoc.title} — Arraylist Docs`,
+          description: currentDoc.description,
+          path: `/docs/${currentDoc.slug}`,
+        }
+      : {
+          title: 'Not found — Arraylist',
+          description: 'That route does not exist in the Arraylist documentation index.',
+        },
+  )
+
+  useEffect(() => {
+    if (!hash || !bodyMarkdown) {
+      return
+    }
+
+    return scrollToHashWithRetry(hash)
+  }, [slug, hash, bodyMarkdown])
 
   if (!slug || !currentDoc) {
     return <NotFoundPage />
@@ -46,16 +86,22 @@ export function DocsPage() {
     <div className="doc-layout">
       <aside className="doc-rail">
         <button
+          ref={railToggleRef}
           type="button"
           className="doc-rail__toggle lg:hidden"
           aria-expanded={navOpen}
+          aria-controls={railPanelId}
+          aria-label="Toggle documentation navigation"
           onClick={() => setNavOpen((open) => !open)}
         >
-          <span>&gt; docs</span>
-          <span>{navOpen ? '−' : '+'}</span>
+          <span aria-hidden="true">docs</span>
+          <span aria-hidden="true">{navOpen ? '−' : '+'}</span>
         </button>
 
-        <div className={navOpen ? 'doc-rail__panel doc-rail__panel--open' : 'doc-rail__panel'}>
+        <div
+          id={railPanelId}
+          className={navOpen ? 'doc-rail__panel doc-rail__panel--open' : 'doc-rail__panel'}
+        >
           <p className="doc-rail__label hidden lg:block">docs/</p>
           <nav className="doc-rail__nav" aria-label="Documentation">
             {docs.map((doc) => (
@@ -85,6 +131,9 @@ export function DocsPage() {
           <p className="doc-page__lede">{currentDoc.description}</p>
         </header>
 
+        {/* Lazy-loaded contextual visuals — motion code only loads for pages that actually render them */}
+        <LazyDocVisuals slug={slug} />
+
         {headings.length > 0 ? (
           <div className="doc-page__toc-mobile lg:hidden">
             <DocToc headings={headings} />
@@ -102,7 +151,7 @@ export function DocsPage() {
               },
             }}
           >
-            {markdown}
+            {bodyMarkdown}
           </ReactMarkdown>
         </div>
 

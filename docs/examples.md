@@ -3,7 +3,7 @@
 ## 1) Safe append loop
 
 ```c
-Array(int) arr = array_make(int, 0);
+Array(int) arr = array_make(int, 8);
 if (!arr) return 1;
 
 for (int i = 0; i < 10; ++i)
@@ -16,7 +16,7 @@ for (int i = 0; i < 10; ++i)
 }
 ```
 
-Why this matters: each append can fail due to growth/allocation, so checked control flow prevents silent data loss.
+Why this matters: starting at capacity 8 avoids the first few tiny reallocations, and each append can still fail later due to growth/allocation.
 
 ## 2) Checked index access
 
@@ -50,14 +50,33 @@ if (array_try_slice_t(int, arr, 2, 6, &window))
 {
     for (array_size_t i = 0; i < window.count; ++i)
     {
-        printf("%d\n", window.elements[i]);
+        int *item = NULL;
+        if (array_try_slice_at_t(int, arr, window, i, &item))
+        {
+            printf("%d\n", *item);
+        }
     }
 }
 ```
 
-Why this matters: slicing is `O(1)` and non-copying, but still needs bounds validation.
+Why this matters: `Slice(T)` stores a range (`start`, `count`) instead of a raw element pointer, so the slice itself does not dangle when the array grows. Any pointer returned through the slice is still temporary.
 
-## 5) Nullable helpers
+## 5) Temporary span view
+
+```c
+Span(int) view;
+if (array_try_span_t(int, arr, window, &view))
+{
+    for (array_size_t i = 0; i < view.count; ++i)
+    {
+        printf("%d\n", view.elements[i]);
+    }
+}
+```
+
+Why this matters: `Span(T)` is the explicit borrowed pointer view. It is convenient, but it becomes invalid after `array_reserve`, `array_try_push`, `array_push`, or `array_free`.
+
+## 6) Nullable helpers
 
 ```c
 Array(int) maybe_arr = NULL;
@@ -67,7 +86,7 @@ bool is_empty = array_is_empty_or_true(maybe_arr);
 
 Why this matters: nullable helpers avoid null checks in read-only paths.
 
-## 6) Strict C iteration (portable)
+## 7) Strict C iteration (portable)
 
 ```c
 array_for_each_t(int, arr, it)
@@ -78,7 +97,7 @@ array_for_each_t(int, arr, it)
 
 Why this matters: this is the strict C11/C17 iteration path with explicit element type.
 
-## 7) GNU convenience iteration
+## 8) GNU convenience iteration
 
 ```c
 #if ARRAY_HAS_TYPEOF
@@ -91,25 +110,25 @@ array_for_each(arr, it)
 
 Why this matters: same runtime behavior as typed iteration, but shorter syntax when `typeof` is available.
 
-## 8) Struct element push (non-scalar)
+## 9) Struct element push (non-scalar)
 
 ```c
 typedef struct { int x; int y; } Point;
 generate_array_type(Point);
 
-Array(Point) points = array_make(Point, 0);
+Array(Point) points = array_make(Point, 8);
 Point p = { .x = 1, .y = 2 };
 
-if (!array_try_push_lvalue(points, p))
+if (!array_try_push(points, p))
 {
     array_free(points);
     return 1;
 }
 ```
 
-Why this matters: `array_try_push` dispatches scalar types with `_Generic`; struct elements use the lvalue helper.
+Why this matters: `array_try_push` is generic over your element type without a hard-coded scalar dispatch list.
 
-## 9) Cleanup pattern
+## 10) Cleanup pattern
 
 ```c
 array_free(arr);

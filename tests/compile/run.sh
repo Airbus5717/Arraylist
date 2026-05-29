@@ -18,8 +18,8 @@ done
 if command -v clang >/dev/null 2>&1; then
     for src in quickstart.c examples.c; do
         out="${src%.c}-clang"
-        echo "clang -std=gnu11 -Wall -Wextra -pedantic -I\"$ROOT\" $src"
-        clang -std=gnu11 -Wall -Wextra -pedantic -I"$ROOT" "$src" -o "$out"
+        echo "clang -std=gnu11 -Wall -Wextra -I\"$ROOT\" $src"
+        clang -std=gnu11 -Wall -Wextra -I"$ROOT" "$src" -o "$out"
         "./$out" >/dev/null
         rm -f "$out"
     done

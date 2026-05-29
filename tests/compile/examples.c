@@ -5,7 +5,7 @@ generate_array_type(int);
 
 int main(void)
 {
-    Array(int) arr = array_make(int, 0);
+    Array(int) arr = array_make(int, 8);
     if (!arr)
     {
         return 1;
@@ -37,7 +37,20 @@ int main(void)
     {
         for (array_size_t i = 0; i < window.count; ++i)
         {
-            printf("%d\n", window.elements[i]);
+            int *item = NULL;
+            if (array_try_slice_at_t(int, arr, window, i, &item))
+            {
+                printf("%d\n", *item);
+            }
+        }
+    }
+
+    Span(int) window_span;
+    if (array_try_span_t(int, arr, window, &window_span))
+    {
+        for (array_size_t i = 0; i < window_span.count; ++i)
+        {
+            printf("%d\n", window_span.elements[i]);
         }
     }
 

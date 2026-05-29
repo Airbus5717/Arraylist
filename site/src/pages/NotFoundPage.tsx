@@ -1,8 +1,11 @@
 import { NavLink } from 'react-router-dom'
-import { usePageTitle } from '../hooks/usePageTitle'
+import { usePageMeta } from '../hooks/usePageMeta'
 
 export function NotFoundPage() {
-  usePageTitle('Not found — Arraylist')
+  usePageMeta({
+    title: 'Not found — Arraylist',
+    description: 'That route does not exist in the Arraylist documentation index.',
+  })
 
   return (
     <article className="doc-page">

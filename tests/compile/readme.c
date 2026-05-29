@@ -5,7 +5,7 @@ generate_array_type(int);
 
 int main(void)
 {
-    Array(int) values = array_make(int, 0);
+    Array(int) values = array_make(int, 8);
     int *at0 = NULL;
 
     if (!values)

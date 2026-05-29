@@ -14,6 +14,7 @@ export default defineConfig({
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
           markdown: ['react-markdown', 'remark-gfm', 'rehype-slug', 'rehype-highlight'],
+          motion: ['gsap', '@gsap/react'],
         },
       },
     },
