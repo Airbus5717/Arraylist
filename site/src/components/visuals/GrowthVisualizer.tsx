@@ -59,16 +59,24 @@ export function GrowthVisualizer() {
     () => {
       if (reduceMotion) return undefined
 
-      gsap.fromTo(
-        '.visual-prototype__value',
-        { y: -4, autoAlpha: 0.55 },
-        { y: 0, autoAlpha: 1, duration: visualDuration, ease: visualEase, stagger: 0.04 },
-      )
-      gsap.fromTo(
-        '.visual-prototype__slot',
-        { y: 6, scale: 0.94, autoAlpha: 0.55 },
-        { y: 0, scale: 1, autoAlpha: 1, duration: 0.34, ease: visualEase, stagger: 0.025 },
-      )
+      const root = rootRef.current
+      const values = root ? Array.from(root.querySelectorAll('.visual-prototype__value')) : []
+      const slots = root ? Array.from(root.querySelectorAll('.visual-prototype__slot')) : []
+
+      if (values.length > 0) {
+        gsap.fromTo(
+          values,
+          { y: -4, autoAlpha: 0.55 },
+          { y: 0, autoAlpha: 1, duration: visualDuration, ease: visualEase, stagger: 0.04 },
+        )
+      }
+      if (slots.length > 0) {
+        gsap.fromTo(
+          slots,
+          { y: 6, scale: 0.94, autoAlpha: 0.55 },
+          { y: 0, scale: 1, autoAlpha: 1, duration: 0.34, ease: visualEase, stagger: 0.025 },
+        )
+      }
 
       return undefined
     },
