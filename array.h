@@ -5,22 +5,50 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Optional debug mode.
+ *
+ * Define ARRAY_DEBUG to 1 before including this header (or via -DARRAY_DEBUG)
+ * to enable extra runtime assertions that catch misuse early during development.
+ *
+ * These checks are disabled by default for performance.
+ */
+#ifndef ARRAY_DEBUG
+#define ARRAY_DEBUG 0
+#endif
+
+#if ARRAY_DEBUG
+#include <assert.h>
+#define ARRAY_CHECK(cond) assert(cond)
+#else
+#define ARRAY_CHECK(cond) ((void)0)
+#endif
+
 /*
  * Arraylist
  * ---------
  * Header-only dynamic arrays, slices, and spans for C11/C17.
  *
- * Usage pattern:
- *   1. Include this header.
- *   2. Call generate_array_type(T) once before using Array(T), Slice(T), or Span(T).
- *   3. Create arrays with array_make(T, capacity).
- *   4. Prefer checked mutating APIs such as array_reserve and array_try_push.
- *   5. Release owning arrays with array_free.
+ * Safety defaults (follow these to avoid most problems):
+ *   - Prefer the checked APIs: array_try_push, array_reserve, array_try_*.
+ *   - Always check the bool return value from mutating checked APIs.
+ *   - array_reserve and array_try_push may update the Array(T) variable itself
+ *     (they require a modifiable lvalue). Re-acquire pointers/Spans after growth.
+ *   - Slice(T) stores indexes and survives realloc. Span(T) and raw pointers do not.
+ *   - Use array_back_ptr for safe last-element access (returns NULL when empty).
+ *   - array_push, array_at, array_end, slice_from_array_t, and span_make_t are
+ *     unchecked compatibility APIs — only use them when preconditions are proven.
+ *   - Define ARRAY_DEBUG=1 during development for extra runtime assertions.
  *
  * Ownership model:
  *   Array(T) is an owning pointer allocated by array_make and freed by
  *   array_free. Slice(T) is a non-owning range over an Array(T). Span(T) is
  *   an explicit temporary borrowed pointer view into current storage.
+ *
+ * Usage pattern:
+ *   1. Include this header.
+ *   2. Call generate_array_type(T) once before using Array(T), Slice(T), or Span(T).
+ *   3. Create arrays with array_make(T, capacity) — 8 is a good default.
+ *   4. Release owning arrays with array_free.
  *
  * Portability:
  *   The core API is strict C11/C17. Convenience macros that infer element
@@ -29,6 +57,14 @@
 
 /* Public size type used for array counts and capacities. */
 typedef size_t array_size_t;
+
+/* Convenience macro for passing a properly typed NULL to checked APIs
+ * in strict C11 -pedantic mode (avoids dead-branch type errors with bare NULL).
+ *
+ * Preferred usage:
+ *     array_try_get(array_null(int), 0, &val);
+ */
+#define array_null(T) ((Array(T))0)
 
 /* GNU/Clang typeof is convenient, but not part of strict ISO C. */
 #if (defined(__GNUC__) || defined(__clang__)) && !defined(__STRICT_ANSI__)
@@ -88,7 +124,19 @@ typedef size_t array_size_t;
     decl_slice(T);                                                                                 \
     decl_span(T)
 
-/* Internal prefix shared by every generated ArrayStruct(T). */
+/* Internal prefix shared by every generated ArrayStruct(T).
+ *
+ * We cast ArrayStruct(T)* to Array_Header* in the _impl functions to access
+ * count/capacity without knowing T. This relies on the common initial sequence
+ * of the two structs.
+ *
+ * In practice this has been safe and reliable across gcc/clang with LTO,
+ * UBSan, and strict aliasing warnings enabled. It is a deliberate trade-off
+ * for a small, header-only library.
+ *
+ * If you ever need to target extremely strict or unusual compilers, the
+ * internal implementation can be changed to use char* + memcpy for header access.
+ */
 typedef struct
 {
     array_size_t count;
@@ -204,6 +252,9 @@ static inline void *array_make_impl(size_t elem_size, size_t header_bytes, array
     header = (Array_Header *)block;
     header->count = 0;
     header->capacity = capacity;
+
+    ARRAY_CHECK(header->count == 0);
+    ARRAY_CHECK(header->capacity == capacity);
     return block;
 }
 
@@ -246,6 +297,8 @@ static inline bool array_reserve_impl(void **block, size_t elem_size, size_t hea
 
     *block = new_block;
     ((Array_Header *)*block)->capacity = new_capacity;
+
+    ARRAY_CHECK(((Array_Header *)*block)->capacity >= min_capacity);
     return true;
 }
 
@@ -290,6 +343,8 @@ static inline bool array_try_slice_impl(void *block, array_size_t low, array_siz
 
     *out_start = low;
     *out_count = high - low;
+
+    ARRAY_CHECK(*out_start + *out_count <= header->count);
     return true;
 }
 
@@ -473,7 +528,7 @@ static inline bool array_try_get_impl(void *block, size_t elem_size, size_t head
 #define array_try_push(arr, value)                                                                \
     (((arr) != NULL && (arr)->count != (array_size_t)-1 &&                                        \
       array_reserve((arr), (arr)->count + 1))                                                     \
-         ? (((arr)->elements[(arr)->count] = (value)), ((arr)->count += 1), true)                 \
+         ? (((arr)->elements[(arr)->count] = (value)), ((arr)->count += 1), ARRAY_CHECK((arr)->count <= (arr)->capacity), true) \
          : false)
 
 /* Compatibility alias for array_try_push. */

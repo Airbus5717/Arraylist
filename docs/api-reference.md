@@ -280,6 +280,128 @@ typedef struct {
 - Default for new code: checked APIs (`array_try_*`, `array_reserve`, nullable helpers).
 - Use unchecked compatibility APIs only when preconditions are guaranteed locally and reviewed.
 
+## Common Pitfalls & Best Practices
+
+The library is defensively written, but certain patterns consistently cause problems. These are not bugs in the implementation — they are sharp edges inherent to C macros and pointer semantics.
+
+### 1. Prefer `array_try_push` — `array_push` discards failures
+
+```c
+array_push(arr, value);           // Silently does nothing on allocation failure
+
+if (!array_try_push(arr, value))  // Preferred
+    goto fail;
+```
+
+### 2. Do not keep raw pointers or Spans across growth
+
+Any of these can invalidate previously obtained pointers:
+
+- `array_reserve`
+- `array_try_push` / `array_push`
+- `array_free`
+
+**Bad pattern:**
+```c
+int *p = NULL;
+array_try_at(values, 0, &p);
+
+array_try_push(values, 42);   // May realloc and move the array
+
+printf("%d\n", *p);           // Undefined behavior
+```
+
+**Correct pattern:**
+```c
+int *p = NULL;
+if (array_try_at(values, 0, &p)) {
+    printf("%d\n", *p);
+}
+
+if (!array_try_push(values, 42)) goto fail;
+
+// Re-acquire the pointer after any growth
+if (array_try_at(values, 0, &p)) {
+    printf("%d\n", *p);
+}
+```
+
+`Slice(T)` objects are safe across growth (they store indexes). `Span(T)` objects are not.
+
+### 3. `Slice(T)` is stable across reallocations — `Span(T)` is not
+
+- A `Slice` stores `start` + `count`. It remains valid as long as the range still exists in the current array.
+- A `Span` (and any pointer from `array_try_at` or `array_back_ptr`) stores a raw pointer and becomes dangling on realloc.
+
+Always re-materialize Spans after growth:
+```c
+Span(int) view;
+if (array_try_span_t(int, arr, my_slice, &view)) { ... }
+```
+
+### 4. Prefer `array_back_ptr` over `array_end`
+
+`array_end(arr)` returns a pointer to the **last element** and is undefined behavior on empty arrays. The name is misleading to most C programmers (who expect "end" to mean one-past-the-end).
+
+Use the safe, nullable version instead:
+```c
+int *last = array_back_ptr(arr);   // NULL when empty or NULL array
+if (last) printf("%d\n", *last);
+```
+
+`array_end` and `array_end_unchecked` are compatibility names for the unchecked path.
+
+### 5. Use typed `NULL` with checked/inferred macros
+
+Passing a bare `NULL` literal to some checked macros can cause compile errors in strict `-std=c11 -pedantic` mode because of how the macros are written.
+
+Recommended patterns (in order of preference):
+
+```c
+// Best with the helper (new in this library)
+array_try_get(array_null(int), 0, &v);
+
+// Good
+Array(int) missing = NULL;
+array_try_get(missing, 0, &v);
+
+// Also works
+array_try_get( (Array(int))0 , 0, &v);
+```
+
+### 6. `array_reserve` and `array_try_push` can change your variable
+
+These macros require a modifiable lvalue because growth may call `realloc` and update the pointer:
+
+```c
+// BAD — the update happens to a local copy
+Array(int) *p = &my_array;
+array_reserve(*p, 100);
+
+// GOOD
+array_reserve(my_array, 100);   // my_array itself may be reassigned
+```
+
+Passing through a pointer is a common source of bugs:
+
+```c
+void grow(Array(int) *p) {
+    array_reserve(*p, 100);   // Updates the local *p, not caller's variable
+}
+```
+
+Never store `Array(T)` behind an extra level of indirection if you intend to grow it. The library is designed around direct lvalue use.
+
+### 7. Growth policy may surprise you
+
+`array_make(int, 5)` followed by `array_reserve(arr, 6)` results in capacity **10**, not 8. The policy doubles from the *current* capacity, not the next power of two. This is intentional but different from many other dynamic array libraries.
+
+### 8. Enable ARRAY_DEBUG during development
+
+Define `ARRAY_DEBUG` (e.g. `-DARRAY_DEBUG`) before including the header to turn on extra runtime assertions. These catch invariant violations (such as count > capacity or invalid slices) early.
+
+This is highly recommended while you are still learning the ownership and invalidation rules. The checks have zero cost when `ARRAY_DEBUG` is not defined.
+
 ## Internal guarantees used by public macros
 
 - Zero-capacity arrays grow correctly on first push.

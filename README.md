@@ -58,6 +58,12 @@ Doc snippets compile under strict C11:
 tests/compile/run.sh
 ```
 
+You can also test with other compilers, e.g.:
+
+```sh
+CC="zig cc" tests/compile/run.sh
+```
+
 ## Example (safe usage)
 
 ```c
@@ -107,8 +113,10 @@ Canonical Markdown docs live in `docs/`:
 
 - [Overview](./docs/overview.md)
 - [Quickstart](./docs/quickstart.md)
-- [API Reference](./docs/api-reference.md)
+- [API Reference](./docs/api-reference.md) — includes a "Common Pitfalls & Best Practices" section
 - [Examples](./docs/examples.md)
+
+The library has received significant usability hardening (see the Pitfalls section and the top of `array.h`). Define `ARRAY_DEBUG` while developing for extra runtime checks.
 
 ## Website (Vite + React + Tailwind)
 
